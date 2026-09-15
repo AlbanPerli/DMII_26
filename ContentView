@@ -1,0 +1,58 @@
+//
+//  ContentView.swift
+//  CameraApp
+//
+//  Created by Al on 15/09/2026.
+//
+
+import SwiftUI
+
+struct ContentView: View {
+    
+    @StateObject private var camera = CameraManager()
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack{
+                Button("Start") {
+                    camera.start()
+                }
+                Button("Stop") {
+                    camera.stop()
+                }
+                
+                CameraPreview(session: camera.session)
+                
+                if let face = camera.faceRect {
+                    let width = face.width * geometry.size.width
+                    let height = face.height * geometry.size.height
+                    let x = face.midX * geometry.size.width
+                    // Vision utilise une origine en bas à gauche
+                    let y = (1 - face.midY) * geometry.size.height
+                    
+                    Rectangle()
+                        .stroke(.red, lineWidth: 3)
+                        .frame(
+                            width: width,
+                            height: height
+                        )
+                        .position(
+                            x: x,
+                            y: y
+                        )
+                }
+            }
+        }.frame(minWidth: 640, minHeight: 480)
+            .onAppear {
+                camera.start()
+            }
+            .onDisappear {
+                camera.stop()
+            }
+    }
+    
+}
+
+#Preview {
+    ContentView()
+}
