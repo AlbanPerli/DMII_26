@@ -1,0 +1,18 @@
+import AVFoundation
+
+func listCameras() {
+    let discoverySession = AVCaptureDevice.DiscoverySession(
+        deviceTypes: [
+            .external
+        ],
+        mediaType: .video,
+        position: .unspecified
+    )
+
+    print("Nombre de caméras :", discoverySession.devices.count)
+
+    for camera in discoverySession.devices {
+        print("📷", camera.localizedName)
+        print("ID :", camera.uniqueID)
+    }
+}
