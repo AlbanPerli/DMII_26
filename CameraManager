@@ -1,0 +1,99 @@
+import SwiftUI
+import AVFoundation
+import Combine
+import Vision
+import Combine
+
+final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+
+    let session = AVCaptureSession()
+    var faceRect: CGRect?
+
+    func start() {
+        session.beginConfiguration()
+        session.sessionPreset = .high
+
+        guard let camera = AVCaptureDevice.default(
+            .builtInWideAngleCamera,
+            for: .video,
+            position: .unspecified
+        ) else {
+            print("Aucune caméra trouvée")
+            session.commitConfiguration()
+            return
+        }
+
+        do {
+            let input = try AVCaptureDeviceInput(device: camera)
+
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+        } catch {
+            print("Erreur caméra :", error)
+        }
+
+        // Récupération des images
+        let output = AVCaptureVideoDataOutput()
+
+        output.setSampleBufferDelegate(
+            self,
+            queue: DispatchQueue(label: "camera.frames")
+        )
+
+        if session.canAddOutput(output) {
+            session.addOutput(output)
+        }
+
+        session.commitConfiguration()
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.session.startRunning()
+        }
+    }
+
+    func stop() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.session.stopRunning()
+        }
+    }
+
+    // Appelé pour chaque image reçue
+    func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            return
+        }
+
+        detectFace(in: image)
+    }
+    
+    private func detectFace(in image: CVPixelBuffer) {
+
+            let request = VNDetectFaceRectanglesRequest { [weak self] request, error in
+
+                guard let face = request.results?.first as? VNFaceObservation else {
+                    DispatchQueue.main.async {
+                        self?.faceRect = nil
+                    }
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self?.faceRect = face.boundingBox
+                    print(self!.faceRect)
+                }
+            }
+
+            let handler = VNImageRequestHandler(
+                cvPixelBuffer: image,
+                orientation: .up
+            )
+
+            try? handler.perform([request])
+
+        }
+}
