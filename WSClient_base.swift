@@ -35,5 +35,3 @@ socket.send(.string("Bonjour serveur")) { error in
         print("📤 Bonjour serveur")
     }
 }
-
-RunLoop.main.run()
